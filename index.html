@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מסלול 12 — יומן אימונים ותזונה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&family=Rubik:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#1B1D21;
+    --bg-panel:#232629;
+    --bg-panel-2:#2A2D31;
+    --line:#383B40;
+    --text:#EDEAE2;
+    --text-dim:#9A9D9F;
+    --brass:#C9A24B;
+    --brass-dim:#8A754C;
+    --teal:#3E8E90;
+    --rust:#C1502E;
+    --green:#6E9A5A;
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Rubik', sans-serif;
+    font-size:15px;
+    line-height:1.55;
+    min-height:100vh;
+  }
+  h1,h2,h3,.num-display{
+    font-family:'Heebo', sans-serif;
+  }
+  .app{max-width:920px;margin:0 auto;padding:0 0 60px;}
+
+  /* Header */
+  .app-header{
+    padding:28px 20px 18px;
+    border-bottom:1px solid var(--line);
+  }
+  .app-header .kicker{
+    color:var(--brass);
+    font-size:12.5px;
+    letter-spacing:.03em;
+    margin:0 0 4px;
+  }
+  .app-header h1{
+    font-size:30px;
+    font-weight:900;
+    margin:0 0 6px;
+    letter-spacing:-.01em;
+  }
+  .app-header p{
+    color:var(--text-dim);
+    margin:0;
+    font-size:13.5px;
+    max-width:60ch;
+  }
+
+  /* Tabs */
+  .tabbar{
+    display:flex;
+    gap:2px;
+    overflow-x:auto;
+    padding:0 20px;
+    border-bottom:1px solid var(--line);
+    background:var(--bg);
+    position:sticky;
+    top:0;
+    z-index:5;
+    scrollbar-width:none;
+  }
+  .tabbar::-webkit-scrollbar{display:none;}
+  .tabbtn{
+    flex:0 0 auto;
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-family:'Rubik';
+    font-size:14px;
+    font-weight:500;
+    padding:14px 14px 12px;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    white-space:nowrap;
+  }
+  .tabbtn.active{
+    color:var(--text);
+    border-bottom-color:var(--brass);
+  }
+
+  .tabpanel{padding:22px 20px 0;}
+  .hidden{display:none;}
+
+  /* Panels / cards */
+  .panel{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    margin-bottom:16px;
+  }
+  .panel-title{
+    font-size:12px;
+    color:var(--text-dim);
+    margin:0 0 12px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  .accent-strip{
+    border-inline-start:3px solid var(--brass);
+    padding-inline-start:14px;
+  }
+  .accent-strip.teal{border-inline-start-color:var(--teal);}
+  .accent-strip.rust{border-inline-start-color:var(--rust);}
+
+  /* Hero / today card */
+  .hero{
+    background:linear-gradient(135deg, var(--bg-panel-2), var(--bg-panel));
+    border:1px solid var(--line);
+    padding:22px 20px;
+    margin-bottom:18px;
+  }
+  .hero .day-label{color:var(--text-dim); font-size:13px; margin:0 0 2px;}
+  .hero h2{font-size:26px; margin:0 0 4px; font-weight:900;}
+  .hero .sub{color:var(--brass); font-size:13.5px; margin:0 0 14px;}
+  .hero-meta{display:flex; gap:22px; flex-wrap:wrap;}
+  .hero-meta div{font-size:13px; color:var(--text-dim);}
+  .hero-meta strong{display:block; color:var(--text); font-size:17px; font-family:'Heebo'; font-weight:700;}
+
+  /* Exercise rows */
+  .exercise{
+    border-bottom:1px solid var(--line);
+    padding:14px 0;
+  }
+  .exercise:last-child{border-bottom:none;}
+  .exercise-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:10px;
+    margin-bottom:8px;
+    flex-wrap:wrap;
+  }
+  .exercise-head h4{margin:0; font-size:15.5px; font-weight:700;}
+  .exercise-spec{font-size:12px; color:var(--text-dim);}
+  .last-time{font-size:12px; color:var(--brass-dim); margin-bottom:8px;}
+  .sets-grid{display:flex; flex-direction:column; gap:6px;}
+  .set-row{display:flex; align-items:center; gap:8px;}
+  .set-row .set-idx{
+    width:22px; color:var(--text-dim); font-size:12.5px; font-family:'Heebo'; flex:0 0 auto;
+  }
+  .set-row input{
+    background:var(--bg);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:var(--radius);
+    padding:8px 8px;
+    font-size:14px;
+    width:100%;
+    font-family:'Rubik';
+  }
+  .set-row input:focus{outline:1px solid var(--brass); border-color:var(--brass);}
+  .set-row span.unit{font-size:11.5px; color:var(--text-dim); flex:0 0 30px;}
+  .row-remove{
+    background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:16px; flex:0 0 auto; padding:0 4px;
+  }
+  .row-remove:hover{color:var(--rust);}
+  .add-set-btn{
+    margin-top:8px;
+    background:none;
+    border:1px dashed var(--line);
+    color:var(--text-dim);
+    font-size:12.5px;
+    padding:6px 10px;
+    cursor:pointer;
+    border-radius:var(--radius);
+  }
+  .add-set-btn:hover{border-color:var(--brass); color:var(--brass);}
+
+  button.primary{
+    background:var(--brass);
+    color:#1B1D21;
+    border:none;
+    font-family:'Heebo';
+    font-weight:700;
+    font-size:14px;
+    padding:11px 22px;
+    border-radius:var(--radius);
+    cursor:pointer;
+  }
+  button.primary:hover{background:#dcb45c;}
+  button.secondary{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:13.5px;
+    padding:9px 16px;
+    border-radius:var(--radius);
+    cursor:pointer;
+    font-family:'Rubik';
+  }
+  button.secondary:hover{border-color:var(--text-dim);}
+  .save-row{display:flex; align-items:center; gap:12px; margin-top:16px;}
+  .save-msg{font-size:12.5px; color:var(--green);}
+
+  /* Tables */
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th,td{padding:9px 8px; text-align:right; border-bottom:1px solid var(--line);}
+  th{color:var(--text-dim); font-weight:500; font-size:12px;}
+  tr.current-week td{background:rgba(201,162,75,0.08);}
+  tr.current-week td:first-child{color:var(--brass); font-weight:700;}
+  td input{
+    background:var(--bg); border:1px solid var(--line); color:var(--text);
+    border-radius:var(--radius); padding:6px; font-size:13px; width:100%; font-family:'Rubik';
+  }
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;}
+  @media (max-width:600px){ .grid2, .grid3{grid-template-columns:1fr;} }
+
+  label{display:block; font-size:12.5px; color:var(--text-dim); margin-bottom:4px;}
+  select, input[type=number], input[type=date], input[type=text]{
+    background:var(--bg); border:1px solid var(--line); color:var(--text);
+    border-radius:var(--radius); padding:9px 10px; font-size:14px; width:100%; font-family:'Rubik';
+  }
+  .field{margin-bottom:12px;}
+
+  /* Nutrition */
+  .macro-bar-wrap{margin-bottom:14px;}
+  .macro-bar-label{display:flex; justify-content:space-between; font-size:12.5px; color:var(--text-dim); margin-bottom:4px;}
+  .macro-bar-track{height:7px; background:var(--bg); border-radius:6px; overflow:hidden;}
+  .macro-bar-fill{height:100%; border-radius:6px;}
+  .food-list{max-height:230px; overflow-y:auto; border:1px solid var(--line); margin-bottom:10px;}
+  .food-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 10px; border-bottom:1px solid var(--line); cursor:pointer; font-size:13.5px;
+  }
+  .food-row:hover{background:var(--bg-panel-2);}
+  .food-row:last-child{border-bottom:none;}
+  .food-row .fname{font-weight:500;}
+  .food-row .fmacro{color:var(--text-dim); font-size:12px;}
+  .logged-item{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0; border-bottom:1px solid var(--line); font-size:13.5px;
+  }
+  .logged-item:last-child{border-bottom:none;}
+  .empty-note{color:var(--text-dim); font-size:13px; padding:14px 0; text-align:center;}
+  .badge{
+    display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; background:var(--bg-panel-2); color:var(--text-dim); border:1px solid var(--line);
+  }
+  .rest-msg{padding:30px 10px; text-align:center; color:var(--text-dim);}
+  .rest-msg .big{font-size:40px; margin-bottom:8px;}
+  canvas{max-width:100%;}
+  .chart-wrap{position:relative; height:220px;}
+  .foot-note{font-size:11.5px; color:var(--text-dim); margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="app-header">
+    <p class="kicker">תוכנית אימונים · 12 שבועות</p>
+    <h1>מסלול 12</h1>
+    <p>יומן אימונים, ריצה ושחייה, מעקב התקדמות ותזונה — הכול לפי התוכנית שלך, במקום אחד.</p>
+    <p id="sync-status" style="font-size:12px; color:var(--text-dim); margin-top:10px;">מתחבר לענן...</p>
+  </div>
+  <div id="setup-banner" class="hidden" style="margin:16px 20px 0; padding:16px; border:1px solid var(--rust); background:rgba(193,80,46,0.08); border-radius:2px; font-size:13px; color:var(--text);"></div>
+
+  <div class="tabbar" id="tabbar">
+    <button class="tabbtn active" data-tab="today">היום</button>
+    <button class="tabbtn" data-tab="plan">התוכנית המלאה</button>
+    <button class="tabbtn" data-tab="cardio">ריצה ושחייה</button>
+    <button class="tabbtn" data-tab="progress">מעקב התקדמות</button>
+    <button class="tabbtn" data-tab="nutrition">תזונה</button>
+    <button class="tabbtn" data-tab="settings">הגדרות</button>
+  </div>
+
+  <div class="tabpanel" id="tab-today"></div>
+  <div class="tabpanel hidden" id="tab-plan"></div>
+  <div class="tabpanel hidden" id="tab-cardio"></div>
+  <div class="tabpanel hidden" id="tab-progress"></div>
+  <div class="tabpanel hidden" id="tab-nutrition"></div>
+  <div class="tabpanel hidden" id="tab-settings"></div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import {
+  getAuth, signInAnonymously, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, documentId
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+/* ============================= FIREBASE SETUP ============================= */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC1u6V69o5RV8WCLCD-uFQJDnMtg82PPRM",
+  authDomain: "workout-3ecef.firebaseapp.com",
+  projectId: "workout-3ecef",
+  storageBucket: "workout-3ecef.firebasestorage.app",
+  messagingSenderId: "800129315761",
+  appId: "1:800129315761:web:bc4ab50bdf038a80280390",
+  measurementId: "G-TLW5G685Y5"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+let currentUser = null;
+let authFailed = false;
+
+const authReady = new Promise((resolve, reject) => {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      const statusEl = document.getElementById('sync-status');
+      if (statusEl) statusEl.textContent = 'מחובר לענן ✓ — הנתונים שלך נשמרים ב-Firestore';
+      resolve(user);
+    } else {
+      signInAnonymously(auth).catch((err) => {
+        authFailed = true;
+        reject(err);
+      });
+    }
+  }, (err) => { authFailed = true; reject(err); });
+});
+
+function showSetupBanner(err){
+  const banner = document.getElementById('setup-banner');
+  const statusEl = document.getElementById('sync-status');
+  if (statusEl) statusEl.textContent = 'לא ניתן להתחבר לענן — ראה הוראות למטה';
+  if (!banner) return;
+  banner.classList.remove('hidden');
+  banner.innerHTML = `<strong>ההתחברות ל-Firebase נכשלה</strong> (${err && err.code ? err.code : 'שגיאה לא ידועה'}).<br>
+    כדי שהאפליקציה תשמור נתונים, יש להגדיר בפרויקט <code>workout-3ecef</code> בקונסולת Firebase:<br>
+    1. Authentication → Sign-in method → הפעלת <strong>Anonymous</strong>.<br>
+    2. Firestore Database → יצירת מסד נתונים (במידה ולא קיים).<br>
+    3. Firestore → Rules → הגדרת הכלל הבא כדי שכל משתמש יראה רק את הנתונים שלו:<br>
+    <code style="display:block; white-space:pre; background:var(--bg); padding:8px; margin-top:6px; border-radius:2px;">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}</code>
+    לאחר ההגדרה, רענן את הדף.`;
+}
+
+/* ============================= DATA ============================= */
+
+const WEEKLY_PLAN = [
+  {dayIndex:0, day:'יום א׳', workout:'Full Body A', duration:'60–75 דק׳', goal:'בניית כוח ושריר', type:'strength', planKey:'A'},
+  {dayIndex:1, day:'יום ב׳', workout:'ריצה', duration:'30–45 דק׳', goal:'כושר וסבולת', type:'run'},
+  {dayIndex:2, day:'יום ג׳', workout:'מנוחה', duration:'—', goal:'התאוששות', type:'rest'},
+  {dayIndex:3, day:'יום ד׳', workout:'Full Body B', duration:'60–75 דק׳', goal:'בניית כוח ושריר', type:'strength', planKey:'B'},
+  {dayIndex:4, day:'יום ה׳', workout:'מנוחה', duration:'—', goal:'התאוששות', type:'rest'},
+  {dayIndex:5, day:'יום ו׳', workout:'שחייה', duration:'30–45 דק׳', goal:'סבולת וטכניקה', type:'swim'},
+  {dayIndex:6, day:'שבת', workout:'מנוחה', duration:'—', goal:'התאוששות', type:'rest'},
+];
+
+const FULL_BODY = {
+  A: [
+    {name:'Squat / Leg Press', sets:3, reps:'6–10', rest:'2–3 דק׳', intensity:'RIR 1–2'},
+    {name:'Bench Press', sets:3, reps:'6–10', rest:'2–3 דק׳', intensity:'RIR 1–2'},
+    {name:'Lat Pulldown / Pull-ups', sets:3, reps:'8–12', rest:'2–3 דק׳', intensity:'RIR 1–2'},
+    {name:'Romanian Deadlift', sets:3, reps:'8–10', rest:'2–3 דק׳', intensity:'RIR 1–2'},
+    {name:'Lateral Raises', sets:3, reps:'12–20', rest:'60–90 שנ׳', intensity:'RIR 1–2'},
+    {name:'Biceps Curl', sets:2, reps:'10–15', rest:'60–90 שנ׳', intensity:'RIR 1–2'},
+    {name:'Triceps Pushdown', sets:2, reps:'10–15', rest:'60–90 שנ׳', intensity:'RIR 1–2'},
+    {name:'Cable Crunch', sets:3, reps:'10–15', rest:'60–90 שנ׳', intensity:'RIR 1–2'},
+    {name:'Hanging Knee Raise', sets:2, reps:'10–15', rest:'60–90 שנ׳', intensity:'RIR 1–2'},
+  ],
+  B: [
+    {name:'Bulgarian Split Squat / Leg Press', sets:3, reps:'8–12', rest:'2–3 דק׳', intensity:'RIR 1–2'},
+    {name:'Incline Dumbbell Press', sets:3, reps:'8–12', rest:'2–3 דק׳', intensity:'RIR 1–2'},
+    {name:'Seated Cable Row', sets:3, reps:'8–12', rest:'2–3 דק׳', intensity:'RIR 1–2'},
+    {name:'Leg Curl', sets:3, reps:'10–15', rest:'60–90 שנ׳', intensity:'RIR 1–2'},
+    {name:'Shoulder Press', sets:3, reps:'8–12', rest:'2–3 דק׳', intensity:'RIR 1–2'},
+    {name:'Lat Pulldown / Pull-ups', sets:2, reps:'8–12', rest:'2–3 דק׳', intensity:'RIR 1–2'},
+    {name:'Lateral Raise', sets:3, reps:'12–20', rest:'60–90 שנ׳', intensity:'RIR 1–2'},
+    {name:'Cable Crunch', sets:3, reps:'10–15', rest:'60–90 שנ׳', intensity:'RIR 1–2'},
+    {name:'Plank', sets:2, reps:'45–75 שנ׳', rest:'60–90 שנ׳', intensity:'RIR 1–2'},
+  ]
+};
+
+const RUN_PROGRAM = [
+  {week:1, workout:'5 ק״מ קל', notes:'קצב קל–בינוני, אפשר לדבר במשפטים קצרים'},
+  {week:2, workout:'5 ק״מ + 4×30 שנ׳ מהיר', notes:'90 שנ׳ קל בין הקטעים'},
+  {week:3, workout:'5–6 ק״מ קל', notes:'Zone 2 / קצב נוח'},
+  {week:4, workout:'5 ק״מ', notes:'10 דק׳ קל + 3×3 דק׳ מהיר, 2 דק׳ קל + סיום קל'},
+  {week:5, workout:'4–5 ק״מ קל מאוד', notes:'שבוע Deload'},
+  {week:6, workout:'5 ק״מ + 5×2 דק׳ מהיר', notes:'2 דק׳ קל בין הקטעים'},
+  {week:7, workout:'6 ק״מ קל', notes:'Zone 2'},
+  {week:8, workout:'5 ק״מ', notes:'10 דק׳ קל + 15–20 דק׳ בינוני/מהיר + סיום קל'},
+  {week:9, workout:'6 ק״מ Zone 2', notes:'קצב נוח'},
+  {week:10, workout:'5–6 ק״מ', notes:'6×2 דק׳ מהיר / 2 דק׳ קל'},
+  {week:11, workout:'6–7 ק״מ קל', notes:'Zone 2'},
+  {week:12, workout:'מבחן 5K', notes:'קצב חזק; השוואה לזמן ההתחלתי'},
+];
+
+const SWIM_PROGRAM = [
+  {week:1, volume:'1,000–1,300 מ׳', structure:'200 חימום + 4×50 טכניקה + 8×50 עבודה + 4×100 קל + 100 שחרור'},
+  {week:2, volume:'1,000–1,300 מ׳', structure:'אותו מבנה; דגש על טכניקה ונשימה'},
+  {week:3, volume:'1,000–1,300 מ׳', structure:'אותו מבנה; מעט פחות מנוחה אם אפשר'},
+  {week:4, volume:'1,000–1,300 מ׳', structure:'אותו מבנה; שמירה על טכניקה'},
+  {week:5, volume:'1,000–1,200 מ׳', structure:'שבוע Deload, קצב קל'},
+  {week:6, volume:'1,300–1,600 מ׳', structure:'200 חימום + 4×50 טכניקה + 6×100 בינוני + 4×50 מהיר + 200 קל'},
+  {week:7, volume:'1,300–1,600 מ׳', structure:'אותו מבנה; התמקדות ברציפות'},
+  {week:8, volume:'1,300–1,600 מ׳', structure:'אותו מבנה; שיפור נשימה וקצב'},
+  {week:9, volume:'1,500–1,800 מ׳', structure:'300 חימום + 4×50 טכניקה + 6×100 בינוני + 4×50 מהיר + 200 שחרור'},
+  {week:10, volume:'1,500–1,800 מ׳', structure:'אותו מבנה; מנוחה מבוקרת'},
+  {week:11, volume:'1,500–1,800 מ׳', structure:'אותו מבנה; דגש על סבולת'},
+  {week:12, volume:'1,500–1,800 מ׳', structure:'אותו מבנה; בדוק שיפור בטכניקה וברציפות'},
+];
+
+const PHASES = [
+  {weeks:'1–4', name:'בניית בסיס', notes:'שבוע 1 RIR 3; שבוע 2 RIR 2; שבועות 3–4 RIR 1–2; שיפור הדרגתי בחזרות/משקל'},
+  {weeks:'5', name:'Deload', notes:'50–60% מהסטים, 10–15% פחות משקל, ללא עבודה קרובה לכשל'},
+  {weeks:'6–9', name:'בניית שריר', notes:'חזרה לעומסים והתקדמות שבועית במשקל/חזרות/ביצוע'},
+  {weeks:'10–12', name:'Push', notes:'רוב הסטים RIR 1; בידוד יכול להגיע לכשל בסט האחרון; ללא כשל בתרגילים כבדים'},
+];
+
+const METRIC_ROWS = ['Bench Press','Squat / Leg Press','Lat Pulldown / Pull-ups','Incline DB Press','Cable Crunch','היקף מותניים (ס"מ)','זמן 5K'];
+const CHECKPOINTS = [{key:'w1',label:'שבוע 1'},{key:'w4',label:'שבוע 4'},{key:'w8',label:'שבוע 8'},{key:'w12',label:'שבוע 12'}];
+
+// Built-in food database, values per 100g: kcal, protein(g), carbs(g), fat(g)
+const BUILTIN_FOODS = [
+  {name:'חזה עוף (מבושל)', kcal:165, protein:31, carb:0, fat:3.6},
+  {name:'ביצה שלמה', kcal:143, protein:13, carb:1.1, fat:9.5},
+  {name:'לבן ביצה', kcal:52, protein:11, carb:0.7, fat:0.2},
+  {name:'אורז לבן מבושל', kcal:130, protein:2.7, carb:28, fat:0.3},
+  {name:'אורז מלא מבושל', kcal:112, protein:2.6, carb:23, fat:0.9},
+  {name:'שיבולת שועל (יבש)', kcal:389, protein:16.9, carb:66, fat:6.9},
+  {name:'קוטג׳ 5%', kcal:106, protein:11, carb:3.4, fat:5},
+  {name:'יוגורט יווני 5%', kcal:97, protein:9, carb:4, fat:5},
+  {name:'טונה בשמן (מסונן)', kcal:128, protein:26, carb:0, fat:2.5},
+  {name:'סלמון (מבושל)', kcal:208, protein:20, carb:0, fat:13},
+  {name:'לחם מלא', kcal:247, protein:9, carb:41, fat:3.4},
+  {name:'פיתה', kcal:275, protein:9, carb:55, fat:1.2},
+  {name:'פסטה מבושלת', kcal:158, protein:5.8, carb:31, fat:0.9},
+  {name:'בטטה (אפויה)', kcal:90, protein:2, carb:21, fat:0.1},
+  {name:'תפוח אדמה (מבושל)', kcal:87, protein:1.9, carb:20, fat:0.1},
+  {name:'בננה', kcal:89, protein:1.1, carb:23, fat:0.3},
+  {name:'תפוח עץ', kcal:52, protein:0.3, carb:14, fat:0.2},
+  {name:'שקדים', kcal:579, protein:21, carb:22, fat:50},
+  {name:'חמאת בוטנים', kcal:588, protein:25, carb:20, fat:50},
+  {name:'שמן זית', kcal:884, protein:0, carb:0, fat:100},
+  {name:'טחינה גולמית', kcal:595, protein:17, carb:21, fat:54},
+  {name:'חומוס (מוכן)', kcal:166, protein:8, carb:14, fat:9.6},
+  {name:'עדשים מבושלות', kcal:116, protein:9, carb:20, fat:0.4},
+  {name:'קינואה מבושלת', kcal:120, protein:4.4, carb:21, fat:1.9},
+  {name:'טופו', kcal:76, protein:8, carb:1.9, fat:4.8},
+  {name:'אבוקדו', kcal:160, protein:2, carb:8.5, fat:14.7},
+  {name:'חלב 3%', kcal:60, protein:3.2, carb:4.8, fat:3.3},
+  {name:'גבינה צהובה 28%', kcal:350, protein:25, carb:1.3, fat:28},
+  {name:'בשר בקר רזה (מבושל)', kcal:187, protein:26, carb:0, fat:8.7},
+  {name:'ברוקולי מאודה', kcal:35, protein:2.4, carb:7, fat:0.4},
+  {name:'עגבנייה', kcal:18, protein:0.9, carb:3.9, fat:0.2},
+  {name:'מלפפון', kcal:15, protein:0.7, carb:3.6, fat:0.1},
+  {name:'שמנת מתוקה 38%', kcal:340, protein:2.2, carb:3, fat:36},
+  {name:'טורטיה מלאה', kcal:270, protein:8, carb:45, fat:6},
+  {name:'אבקת חלבון (מי גבינה)', kcal:380, protein:78, carb:6, fat:5},
+  {name:'שוקולד מריר 70%', kcal:598, protein:7.8, carb:45, fat:42.6},
+];
+
+const ACTIVITY_FACTORS = [
+  {key:'sedentary', label:'יושבני — מעט מאוד תנועה', factor:1.2},
+  {key:'light', label:'פעילות קלה — 1–3 אימונים בשבוע', factor:1.375},
+  {key:'moderate', label:'פעילות בינונית — 3–5 אימונים בשבוע', factor:1.55},
+  {key:'high', label:'פעילות גבוהה — 6–7 אימונים בשבוע', factor:1.725},
+];
+
+const GOALS = [
+  {key:'cut', label:'חיטוב — הרזה והבלטת קוביות', pct:-0.20},
+  {key:'recomp', label:'רה-קומפוזיציה — חיטוב עדין תוך שמירה על שריר', pct:-0.10},
+  {key:'maintain', label:'שימור משקל', pct:0},
+  {key:'leanbulk', label:'עלייה רזה — בניית שריר', pct:0.10},
+];
+
+/* ============================= STORAGE HELPERS ============================= */
+
+async function storeGet(key){
+  try{
+    await authReady;
+    const ref = doc(db, 'users', currentUser.uid, 'kv', key);
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data().value : null;
+  }catch(e){ console.error('storeGet failed', key, e); return null; }
+}
+async function storeSet(key, value){
+  try{
+    await authReady;
+    const ref = doc(db, 'users', currentUser.uid, 'kv', key);
+    await setDoc(ref, {value, updatedAt: Date.now()});
+    return true;
+  }catch(e){ console.error('storeSet failed', key, e); return false; }
+}
+async function storeList(prefix){
+  try{
+    await authReady;
+    const colRef = collection(db, 'users', currentUser.uid, 'kv');
+    const q = prefix
+      ? query(colRef, where(documentId(), '>=', prefix), where(documentId(), '<', prefix + '\uf8ff'))
+      : query(colRef);
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.id);
+  }catch(e){ console.error('storeList failed', prefix, e); return []; }
+}
+
+function todayStr(d){
+  d = d || new Date();
+  return d.toISOString().slice(0,10);
+}
+function fmtDateHe(dstr){
+  const d = new Date(dstr+'T00:00:00');
+  return d.toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit', year:'numeric'});
+}
+
+/* ============================= APP STATE ============================= */
+
+const state = {
+  settings: null, // {startDate, age, activityLevel, goal, heightCm, weightKg}
+  todaySelectedDate: todayStr(),
+  nutritionSelectedDate: todayStr(),
+};
+
+const DEFAULT_SETTINGS = {
+  startDate: todayStr(),
+  age: 30,
+  activityLevel: 'moderate',
+  goal: 'recomp',
+  heightCm: 178,
+  weightKg: 83,
+};
+
+async function loadSettings(){
+  let s = await storeGet('settings');
+  if(!s){
+    s = {...DEFAULT_SETTINGS};
+    await storeSet('settings', s);
+  }
+  state.settings = s;
+  return s;
+}
+
+function getProgramWeek(){
+  const start = new Date(state.settings.startDate+'T00:00:00');
+  const now = new Date(todayStr()+'T00:00:00');
+  const diffDays = Math.round((now-start)/86400000);
+  let week = Math.floor(diffDays/7)+1;
+  if(week<1) week=1;
+  if(week>12) week=12;
+  return week;
+}
+
+/* ============================= TABS ============================= */
+
+const tabs = ['today','plan','cardio','progress','nutrition','settings'];
+document.getElementById('tabbar').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.tabbtn');
+  if(!btn) return;
+  tabs.forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('hidden', t!==btn.dataset.tab);
+  });
+  document.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('active', b===btn));
+  renderTab(btn.dataset.tab);
+});
+
+function renderTab(tab){
+  if(tab==='today') renderToday();
+  else if(tab==='plan') renderPlan();
+  else if(tab==='cardio') renderCardio();
+  else if(tab==='progress') renderProgress();
+  else if(tab==='nutrition') renderNutrition();
+  else if(tab==='settings') renderSettings();
+}
+
+/* ============================= TODAY TAB ============================= */
+
+async function findLastSet(exerciseName, excludeDate){
+  const keys = await storeList('workout:');
+  let best = null, bestDate = null;
+  for(const k of keys){
+    const dateStr = k.replace('workout:','');
+    if(dateStr === excludeDate) continue;
+    const data = await storeGet(k);
+    if(!data || !data.exercises) continue;
+    const ex = data.exercises.find(e=>e.name===exerciseName);
+    if(ex && ex.sets && ex.sets.length){
+      if(!bestDate || dateStr > bestDate){
+        bestDate = dateStr;
+        best = ex.sets;
+      }
+    }
+  }
+  return best ? {date:bestDate, sets:best} : null;
+}
+
+const DAY_TYPE_OPTIONS = [
+  {key:'A', label:'Full Body A', type:'strength', planKey:'A', duration:'60–75 דק׳', goal:'בניית כוח ושריר'},
+  {key:'B', label:'Full Body B', type:'strength', planKey:'B', duration:'60–75 דק׳', goal:'בניית כוח ושריר'},
+  {key:'run', label:'ריצה', type:'run', duration:'30–45 דק׳', goal:'כושר וסבולת'},
+  {key:'swim', label:'שחייה', type:'swim', duration:'30–45 דק׳', goal:'סבולת וטכניקה'},
+  {key:'rest', label:'מנוחה', type:'rest', duration:'—', goal:'התאוששות'},
+];
+
+function autoKeyForDate(dateStr){
+  const dayIndex = new Date(dateStr+'T00:00:00').getDay();
+  const p = WEEKLY_PLAN[dayIndex];
+  return p.type === 'strength' ? p.planKey : p.type;
+}
+
+async function renderToday(){
+  const el = document.getElementById('tab-today');
+  el.innerHTML = '<div class="panel"><p class="empty-note">טוען...</p></div>';
+  await loadSettings();
+
+  const dateStr = state.todaySelectedDate;
+  const d = new Date(dateStr+'T00:00:00');
+  const week = getProgramWeek();
+
+  const autoKey = autoKeyForDate(dateStr);
+  const overrideKey = await storeGet('daytype:'+dateStr);
+  const activeKey = overrideKey || autoKey;
+  const activePlan = DAY_TYPE_OPTIONS.find(o=>o.key===activeKey) || DAY_TYPE_OPTIONS.find(o=>o.key===autoKey);
+
+  let html = '';
+  html += `<div class="hero">
+    <p class="day-label">${d.toLocaleDateString('he-IL',{weekday:'long', day:'2-digit', month:'2-digit'})} · שבוע ${week} מתוך 12</p>
+    <h2>${activePlan.label}</h2>
+    <p class="sub">${activePlan.goal}</p>
+    <div class="hero-meta">
+      <div>משך משוער<strong>${activePlan.duration}</strong></div>
+      <div>שלב תוכנית<strong>${phaseForWeek(week)}</strong></div>
+    </div>
+  </div>`;
+
+  html += `<div class="grid2" style="align-items:end;">
+    <div class="field"><label>הצג יום אחר</label>
+      <input type="date" id="today-date-picker" value="${dateStr}"></div>
+    <div class="field"><label>איזה אימון לעשות היום?</label>
+      <div id="daytype-toggle" style="display:flex; gap:6px; flex-wrap:wrap;">
+        ${DAY_TYPE_OPTIONS.map(o=>`<button type="button" class="secondary daytype-btn" data-key="${o.key}"
+          style="${o.key===activeKey?'border-color:var(--brass); color:var(--brass);':''} padding:8px 12px; font-size:13px;">${o.label}</button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+  if(overrideKey && overrideKey !== autoKey){
+    html += `<p class="foot-note" style="margin:-4px 0 14px;">שינית ידנית מהתוכנית המקורית ליום זה (${DAY_TYPE_OPTIONS.find(o=>o.key===autoKey).label}).</p>`;
+  }
+
+  el.innerHTML = html + '<div id="today-body"><div class="panel"><p class="empty-note">טוען תרגילים...</p></div></div>';
+
+  document.getElementById('today-date-picker').addEventListener('change', (e)=>{
+    state.todaySelectedDate = e.target.value;
+    renderToday();
+  });
+  document.getElementById('daytype-toggle').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('.daytype-btn');
+    if(!btn) return;
+    await storeSet('daytype:'+dateStr, btn.dataset.key);
+    renderToday();
+  });
+
+  const body = document.getElementById('today-body');
+
+  if(activePlan.type === 'rest'){
+    body.innerHTML = `<div class="panel"><div class="rest-msg"><div class="big">☾</div>
+      <p>יום מנוחה — התאוששות היא חלק מהאימון. שינה טובה וחלבון מספיק יעזרו לשריר לגדול.</p></div></div>`;
+    return;
+  }
+
+  if(activePlan.type === 'strength'){
+    const saved = await storeGet('workout:'+dateStr);
+    const exercises = FULL_BODY[activePlan.planKey];
+    let rowsHtml = '';
+    for(const ex of exercises){
+      const savedEx = saved && saved.exercises ? saved.exercises.find(x=>x.name===ex.name) : null;
+      const numSets = savedEx && savedEx.sets.length ? savedEx.sets.length : ex.sets;
+      const last = await findLastSet(ex.name, dateStr);
+      let lastTxt = '';
+      if(last){
+        lastTxt = `<div class="last-time">פעם קודמת (${fmtDateHe(last.date)}): ` +
+          last.sets.map(s=>`${s.weight||'-'} ק"ג × ${s.reps||'-'}`).join(' · ') + '</div>';
+      }
+      let setsHtml = '';
+      for(let i=0;i<numSets;i++){
+        const sv = savedEx && savedEx.sets[i] ? savedEx.sets[i] : {weight:'', reps:''};
+        setsHtml += `<div class="set-row" data-ex="${escAttr(ex.name)}">
+          <span class="set-idx">${i+1}</span>
+          <input type="number" step="0.5" class="w-input" placeholder="ק״ג" value="${sv.weight||''}">
+          <span class="unit">ק"ג</span>
+          <input type="number" step="1" class="r-input" placeholder="חזרות" value="${sv.reps||''}">
+          <span class="unit">חזרות</span>
+          <button class="row-remove" title="הסר סט">✕</button>
+        </div>`;
+      }
+      rowsHtml += `<div class="exercise" data-exercise="${escAttr(ex.name)}">
+        <div class="exercise-head">
+          <h4>${ex.name}</h4>
+          <span class="exercise-spec">${ex.sets} סטים × ${ex.reps} · מנוחה ${ex.rest} · ${ex.intensity}</span>
+        </div>
+        ${lastTxt}
+        <div class="sets-grid">${setsHtml}</div>
+        <button class="add-set-btn">+ הוסף סט</button>
+      </div>`;
+    }
+    body.innerHTML = `<div class="panel">
+      <p class="panel-title">רישום סטים ומשקלים — ${activePlan.label}</p>
+      ${rowsHtml}
+      <div class="save-row">
+        <button class="primary" id="save-workout-btn">שמור אימון</button>
+        <span class="save-msg" id="save-workout-msg"></span>
+      </div>
+    </div>`;
+
+    body.addEventListener('click', (e)=>{
+      if(e.target.classList.contains('add-set-btn')){
+        const exerciseDiv = e.target.closest('.exercise');
+        const grid = exerciseDiv.querySelector('.sets-grid');
+        const idx = grid.children.length+1;
+        const row = document.createElement('div');
+        row.className = 'set-row';
+        row.dataset.ex = exerciseDiv.dataset.exercise;
+        row.innerHTML = `<span class="set-idx">${idx}</span>
+          <input type="number" step="0.5" class="w-input" placeholder="ק״ג">
+          <span class="unit">ק"ג</span>
+          <input type="number" step="1" class="r-input" placeholder="חזרות">
+          <span class="unit">חזרות</span>
+          <button class="row-remove" title="הסר סט">✕</button>`;
+        grid.appendChild(row);
+      }
+      if(e.target.classList.contains('row-remove')){
+        const row = e.target.closest('.set-row');
+        const grid = row.parentElement;
+        row.remove();
+        [...grid.children].forEach((r,i)=>{ r.querySelector('.set-idx').textContent = i+1; });
+      }
+    });
+
+    document.getElementById('save-workout-btn').addEventListener('click', async ()=>{
+      const exerciseDivs = body.querySelectorAll('.exercise');
+      const exercisesOut = [];
+      exerciseDivs.forEach(div=>{
+        const name = div.dataset.exercise;
+        const sets = [...div.querySelectorAll('.set-row')].map(r=>({
+          weight: r.querySelector('.w-input').value,
+          reps: r.querySelector('.r-input').value,
+        }));
+        exercisesOut.push({name, sets});
+      });
+      const ok = await storeSet('workout:'+dateStr, {planKey:activePlan.planKey, exercises:exercisesOut});
+      const msg = document.getElementById('save-workout-msg');
+      msg.textContent = ok ? '✓ נשמר' : 'שגיאה בשמירה';
+      setTimeout(()=>{ if(msg) msg.textContent=''; }, 2500);
+    });
+    return;
+  }
+
+  if(activePlan.type === 'run' || activePlan.type === 'swim'){
+    const prog = activePlan.type==='run' ? RUN_PROGRAM[week-1] : SWIM_PROGRAM[week-1];
+    const saved = await storeGet('cardio:'+dateStr);
+    const isRun = activePlan.type==='run';
+    body.innerHTML = `<div class="panel accent-strip teal">
+      <p class="panel-title">אימון שבוע ${week} — ${isRun?'ריצה':'שחייה'}</p>
+      <h3 style="margin:0 0 6px;">${isRun?prog.workout:prog.volume}</h3>
+      <p style="color:var(--text-dim); font-size:13.5px; margin:0 0 16px;">${isRun?prog.notes:prog.structure}</p>
+      <div class="grid2">
+        <div class="field"><label>${isRun?'מרחק בפועל (ק״מ)':'מרחק בפועל (מ׳)'}</label>
+          <input type="number" step="0.1" id="cardio-distance" value="${saved && saved.distance!=null ? saved.distance : ''}"></div>
+        <div class="field"><label>זמן (דק׳)</label>
+          <input type="number" step="1" id="cardio-time" value="${saved && saved.time!=null ? saved.time : ''}"></div>
+      </div>
+      <div class="field"><label>הערות</label>
+        <input type="text" id="cardio-notes" value="${saved && saved.notes ? escAttr(saved.notes) : ''}"></div>
+      <div class="save-row">
+        <button class="primary" id="save-cardio-btn">שמור אימון</button>
+        <span class="save-msg" id="save-cardio-msg"></span>
+      </div>
+    </div>`;
+    document.getElementById('save-cardio-btn').addEventListener('click', async ()=>{
+      const payload = {
+        type: activePlan.type,
+        week,
+        distance: document.getElementById('cardio-distance').value,
+        time: document.getElementById('cardio-time').value,
+        notes: document.getElementById('cardio-notes').value,
+      };
+      const ok = await storeSet('cardio:'+dateStr, payload);
+      const msg = document.getElementById('save-cardio-msg');
+      msg.textContent = ok ? '✓ נשמר' : 'שגיאה בשמירה';
+      setTimeout(()=>{ if(msg) msg.textContent=''; }, 2500);
+    });
+  }
+}
+
+function phaseForWeek(week){
+  if(week<=4) return 'בניית בסיס';
+  if(week===5) return 'Deload';
+  if(week<=9) return 'בניית שריר';
+  return 'Push';
+}
+
+function escAttr(s){
+  return String(s).replace(/"/g,'&quot;');
+}
+
+/* ============================= PLAN TAB ============================= */
+
+function renderPlan(){
+  const el = document.getElementById('tab-plan');
+  let html = '<div class="panel"><p class="panel-title">תוכנית שבועית</p><table><thead><tr><th>יום</th><th>אימון</th><th>משך</th><th>מטרה</th></tr></thead><tbody>';
+  WEEKLY_PLAN.forEach(d=>{
+    html += `<tr><td>${d.day}</td><td>${d.workout}</td><td>${d.duration}</td><td>${d.goal}</td></tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  ['A','B'].forEach(key=>{
+    html += `<div class="panel"><p class="panel-title">Full Body ${key}</p><table><thead><tr><th>תרגיל</th><th>סטים</th><th>חזרות</th><th>מנוחה</th><th>עצימות</th></tr></thead><tbody>`;
+    FULL_BODY[key].forEach(ex=>{
+      html += `<tr><td>${ex.name}</td><td>${ex.sets}</td><td>${ex.reps}</td><td>${ex.rest}</td><td>${ex.intensity}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+  });
+
+  html += '<div class="panel accent-strip"><p class="panel-title">שלבי התוכנית</p><table><thead><tr><th>שבועות</th><th>שלב</th><th>הנחיות</th></tr></thead><tbody>';
+  PHASES.forEach(p=>{
+    html += `<tr><td>${p.weeks}</td><td>${p.name}</td><td>${p.notes}</td></tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  el.innerHTML = html;
+}
+
+/* ============================= CARDIO TAB ============================= */
+
+async function renderCardio(){
+  const el = document.getElementById('tab-cardio');
+  await loadSettings();
+  const week = getProgramWeek();
+
+  let html = '<div class="panel accent-strip teal"><p class="panel-title">תוכנית ריצה — 12 שבועות</p><table><thead><tr><th>שבוע</th><th>אימון</th><th>הנחיות</th></tr></thead><tbody>';
+  RUN_PROGRAM.forEach(r=>{
+    html += `<tr class="${r.week===week?'current-week':''}"><td>${r.week}</td><td>${r.workout}</td><td>${r.notes}</td></tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  html += '<div class="panel accent-strip teal"><p class="panel-title">תוכנית שחייה — 12 שבועות</p><table><thead><tr><th>שבוע</th><th>נפח</th><th>מבנה</th></tr></thead><tbody>';
+  SWIM_PROGRAM.forEach(r=>{
+    html += `<tr class="${r.week===week?'current-week':''}"><td>${r.week}</td><td>${r.volume}</td><td>${r.structure}</td></tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  el.innerHTML = html;
+
+  const cardioKeys = await storeList('cardio:');
+  const logs = [];
+  for(const k of cardioKeys){
+    const data = await storeGet(k);
+    if(data) logs.push({date:k.replace('cardio:',''), ...data});
+  }
+  logs.sort((a,b)=> b.date.localeCompare(a.date));
+  let logHtml = '<div class="panel"><p class="panel-title">היסטוריית אימוני קרדיו</p>';
+  if(logs.length===0){
+    logHtml += '<p class="empty-note">עדיין לא נרשמו אימוני ריצה או שחייה.</p>';
+  }else{
+    logHtml += '<table><thead><tr><th>תאריך</th><th>סוג</th><th>שבוע</th><th>מרחק</th><th>זמן (דק׳)</th><th>הערות</th></tr></thead><tbody>';
+    logs.slice(0,20).forEach(l=>{
+      logHtml += `<tr><td>${fmtDateHe(l.date)}</td><td>${l.type==='run'?'ריצה':'שחייה'}</td><td>${l.week}</td><td>${l.distance||'-'}</td><td>${l.time||'-'}</td><td>${l.notes||''}</td></tr>`;
+    });
+    logHtml += '</tbody></table>';
+  }
+  logHtml += '</div>';
+  el.insertAdjacentHTML('beforeend', logHtml);
+}
+
+/* ============================= PROGRESS TAB ============================= */
+
+let bwChart = null, liftChart = null;
+
+async function renderProgress(){
+  const el = document.getElementById('tab-progress');
+  el.innerHTML = '<div class="panel"><p class="empty-note">טוען...</p></div>';
+
+  const metrics = (await storeGet('metrics')) || {};
+
+  let html = '<div class="panel"><p class="panel-title">טבלת ציוני דרך</p><table><thead><tr><th>מדד</th>';
+  CHECKPOINTS.forEach(c=> html += `<th>${c.label}</th>`);
+  html += '</tr></thead><tbody>';
+  METRIC_ROWS.forEach(row=>{
+    html += `<tr><td>${row}</td>`;
+    CHECKPOINTS.forEach(c=>{
+      const val = metrics[row] && metrics[row][c.key] ? metrics[row][c.key] : '';
+      html += `<td><input type="text" class="metric-input" data-row="${escAttr(row)}" data-col="${c.key}" value="${escAttr(val)}"></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table><div class="save-row"><button class="primary" id="save-metrics-btn">שמור טבלה</button><span class="save-msg" id="save-metrics-msg"></span></div></div>';
+
+  html += `<div class="grid2">
+    <div class="panel">
+      <p class="panel-title">משקל גוף לאורך זמן</p>
+      <div class="grid2" style="margin-bottom:10px;">
+        <div class="field"><label>תאריך</label><input type="date" id="bw-date" value="${todayStr()}"></div>
+        <div class="field"><label>משקל (ק״ג)</label><input type="number" step="0.1" id="bw-value" placeholder="83"></div>
+      </div>
+      <button class="secondary" id="bw-save-btn">הוסף מדידה</button>
+      <div class="chart-wrap" style="margin-top:14px;"><canvas id="bwChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <p class="panel-title">התקדמות בתרגיל (משקל מקסימלי בכל אימון)</p>
+      <div class="field"><label>בחר תרגיל</label>
+        <select id="lift-select"></select>
+      </div>
+      <div class="chart-wrap"><canvas id="liftChart"></canvas></div>
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
+
+  document.getElementById('save-metrics-btn').addEventListener('click', async ()=>{
+    const inputs = el.querySelectorAll('.metric-input');
+    const out = {};
+    inputs.forEach(inp=>{
+      const row = inp.dataset.row, col = inp.dataset.col;
+      if(!out[row]) out[row] = {};
+      out[row][col] = inp.value;
+    });
+    const ok = await storeSet('metrics', out);
+    const msg = document.getElementById('save-metrics-msg');
+    msg.textContent = ok ? '✓ נשמר' : 'שגיאה';
+    setTimeout(()=>{ if(msg) msg.textContent=''; }, 2000);
+  });
+
+  // Bodyweight chart
+  const bwKeys = await storeList('bw:');
+  const bwPoints = [];
+  for(const k of bwKeys){
+    const v = await storeGet(k);
+    if(v!=null) bwPoints.push({date:k.replace('bw:',''), value:v});
+  }
+  bwPoints.sort((a,b)=>a.date.localeCompare(b.date));
+  drawBwChart(bwPoints);
+
+  document.getElementById('bw-save-btn').addEventListener('click', async ()=>{
+    const date = document.getElementById('bw-date').value;
+    const val = parseFloat(document.getElementById('bw-value').value);
+    if(!date || isNaN(val)) return;
+    await storeSet('bw:'+date, val);
+    renderProgress();
+  });
+
+  // Lift progress chart
+  const allExerciseNames = Array.from(new Set([...FULL_BODY.A, ...FULL_BODY.B].map(e=>e.name)));
+  const liftSelect = document.getElementById('lift-select');
+  liftSelect.innerHTML = allExerciseNames.map(n=>`<option value="${escAttr(n)}">${n}</option>`).join('');
+
+  async function drawLiftChartFor(name){
+    const workoutKeys = await storeList('workout:');
+    const points = [];
+    for(const k of workoutKeys){
+      const data = await storeGet(k);
+      if(!data || !data.exercises) continue;
+      const ex = data.exercises.find(e=>e.name===name);
+      if(ex && ex.sets && ex.sets.length){
+        const maxW = Math.max(...ex.sets.map(s=> parseFloat(s.weight)||0));
+        if(maxW>0) points.push({date:k.replace('workout:',''), value:maxW});
+      }
+    }
+    points.sort((a,b)=>a.date.localeCompare(b.date));
+    drawLiftChart(points, name);
+  }
+  liftSelect.addEventListener('change', ()=> drawLiftChartFor(liftSelect.value));
+  drawLiftChartFor(allExerciseNames[0]);
+}
+
+function drawBwChart(points){
+  const ctx = document.getElementById('bwChart');
+  if(bwChart) bwChart.destroy();
+  bwChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: points.map(p=>fmtDateHe(p.date)),
+      datasets:[{
+        label:'משקל (ק״ג)',
+        data: points.map(p=>p.value),
+        borderColor:'#C9A24B',
+        backgroundColor:'rgba(201,162,75,0.15)',
+        tension:0.3, fill:true, pointRadius:3,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#9A9D9F'}, grid:{color:'#383B40'}},
+        y:{ticks:{color:'#9A9D9F'}, grid:{color:'#383B40'}}
+      }
+    }
+  });
+}
+
+function drawLiftChart(points, name){
+  const ctx = document.getElementById('liftChart');
+  if(liftChart) liftChart.destroy();
+  liftChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: points.map(p=>fmtDateHe(p.date)),
+      datasets:[{
+        label: name,
+        data: points.map(p=>p.value),
+        borderColor:'#3E8E90',
+        backgroundColor:'rgba(62,142,144,0.15)',
+        tension:0.3, fill:true, pointRadius:3,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#9A9D9F'}, grid:{color:'#383B40'}},
+        y:{ticks:{color:'#9A9D9F'}, grid:{color:'#383B40'}}
+      }
+    }
+  });
+}
+
+/* ============================= NUTRITION TAB ============================= */
+
+async function getAllFoods(){
+  const custom = (await storeGet('customFoods')) || [];
+  return [...BUILTIN_FOODS, ...custom];
+}
+
+function computeTargets(settings, latestWeight){
+  const w = latestWeight || settings.weightKg;
+  const h = settings.heightCm;
+  const a = settings.age;
+  // Mifflin-St Jeor (male)
+  const bmr = 10*w + 6.25*h - 5*a + 5;
+  const actFactor = (ACTIVITY_FACTORS.find(x=>x.key===settings.activityLevel) || ACTIVITY_FACTORS[1]).factor;
+  const tdee = bmr*actFactor;
+  const goalObj = GOALS.find(g=>g.key===settings.goal) || GOALS[1];
+  const targetKcal = Math.round(tdee*(1+goalObj.pct));
+  const proteinG = Math.round(w*2.0);
+  const fatG = Math.round((targetKcal*0.25)/9);
+  const proteinKcal = proteinG*4, fatKcal = fatG*9;
+  const carbG = Math.max(0, Math.round((targetKcal - proteinKcal - fatKcal)/4));
+  return {bmr:Math.round(bmr), tdee:Math.round(tdee), targetKcal, proteinG, fatG, carbG, goalLabel: goalObj.label};
+}
+
+async function renderNutrition(){
+  const el = document.getElementById('tab-nutrition');
+  el.innerHTML = '<div class="panel"><p class="empty-note">טוען...</p></div>';
+  await loadSettings();
+
+  // latest bodyweight
+  const bwKeys = await storeList('bw:');
+  let latestWeight = null, latestDate = null;
+  for(const k of bwKeys){
+    const dstr = k.replace('bw:','');
+    if(!latestDate || dstr>latestDate){ latestDate = dstr; latestWeight = await storeGet(k); }
+  }
+  const targets = computeTargets(state.settings, latestWeight);
+
+  const foods = await getAllFoods();
+  const date = state.nutritionSelectedDate;
+  const dayLog = (await storeGet('nutrition:'+date)) || [];
+
+  const totals = dayLog.reduce((acc,i)=>({
+    kcal: acc.kcal + i.kcal, protein: acc.protein+i.protein, carb: acc.carb+i.carb, fat: acc.fat+i.fat
+  }), {kcal:0, protein:0, carb:0, fat:0});
+
+  function bar(label, value, target, color){
+    const pct = target>0 ? Math.min(100, Math.round(value/target*100)) : 0;
+    return `<div class="macro-bar-wrap">
+      <div class="macro-bar-label"><span>${label}</span><span>${Math.round(value)} / ${Math.round(target)}</span></div>
+      <div class="macro-bar-track"><div class="macro-bar-fill" style="width:${pct}%; background:${color};"></div></div>
+    </div>`;
+  }
+
+  let html = `<div class="panel accent-strip rust">
+    <p class="panel-title">יעד קלורי יומי</p>
+    <p style="font-size:12.5px; color:var(--text-dim); margin:0 0 14px;">
+      חישוב לפי BMR (Mifflin-St Jeor) × רמת פעילות, לפי משקל ${latestWeight || state.settings.weightKg} ק״ג. יעד: ${targets.goalLabel}.
+      TDEE משוער: ${targets.tdee} קק״ל.
+    </p>
+    ${bar('קלוריות', totals.kcal, targets.targetKcal, 'var(--rust)')}
+    ${bar('חלבון (גרם)', totals.protein, targets.proteinG, 'var(--brass)')}
+    ${bar('פחמימות (גרם)', totals.carb, targets.carbG, 'var(--teal)')}
+    ${bar('שומן (גרם)', totals.fat, targets.fatG, 'var(--green)')}
+  </div>`;
+
+  html += `<div class="panel">
+    <p class="panel-title">יומן אכילה</p>
+    <div class="field" style="max-width:220px;"><label>תאריך</label><input type="date" id="nutrition-date" value="${date}"></div>
+    <div id="logged-list"></div>
+  </div>`;
+
+  html += `<div class="panel">
+    <p class="panel-title">הוספת מזון</p>
+    <input type="text" id="food-search" placeholder="חפש מזון...">
+    <div class="food-list" id="food-list" style="margin-top:10px;"></div>
+    <div id="add-food-form"></div>
+  </div>`;
+
+  html += `<div class="panel">
+    <p class="panel-title">הוספת מוצר חדש למאגר</p>
+    <div class="grid2">
+      <div class="field"><label>שם המוצר</label><input type="text" id="new-food-name"></div>
+      <div class="field"><label>קלוריות ל-100 גרם</label><input type="number" id="new-food-kcal"></div>
+      <div class="field"><label>חלבון (גרם ל-100 גרם)</label><input type="number" step="0.1" id="new-food-protein"></div>
+      <div class="field"><label>פחמימות (גרם ל-100 גרם)</label><input type="number" step="0.1" id="new-food-carb"></div>
+      <div class="field"><label>שומן (גרם ל-100 גרם)</label><input type="number" step="0.1" id="new-food-fat"></div>
+    </div>
+    <button class="secondary" id="save-new-food-btn">שמור מוצר במאגר</button>
+    <span class="save-msg" id="new-food-msg"></span>
+  </div>`;
+
+  el.innerHTML = html;
+
+  function renderLoggedList(){
+    const wrap = document.getElementById('logged-list');
+    if(dayLog.length===0){
+      wrap.innerHTML = '<p class="empty-note">עדיין לא נרשם מזון ביום זה.</p>';
+      return;
+    }
+    wrap.innerHTML = dayLog.map((item, idx)=>`
+      <div class="logged-item">
+        <span>${item.name} · ${item.grams} גרם</span>
+        <span>
+          <span class="badge">${Math.round(item.kcal)} קק"ל</span>
+          <button class="row-remove" data-idx="${idx}" title="מחק">✕</button>
+        </span>
+      </div>`).join('');
+    wrap.querySelectorAll('.row-remove').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        dayLog.splice(parseInt(btn.dataset.idx),1);
+        await storeSet('nutrition:'+date, dayLog);
+        renderNutrition();
+      });
+    });
+  }
+  renderLoggedList();
+
+  document.getElementById('nutrition-date').addEventListener('change', (e)=>{
+    state.nutritionSelectedDate = e.target.value;
+    renderNutrition();
+  });
+
+  function renderFoodList(filter){
+    const wrap = document.getElementById('food-list');
+    const f = (filter||'').trim();
+    const filtered = f ? foods.filter(fd=>fd.name.includes(f)) : foods;
+    wrap.innerHTML = filtered.slice(0,60).map((fd,idx)=>`
+      <div class="food-row" data-name="${escAttr(fd.name)}">
+        <span class="fname">${fd.name}</span>
+        <span class="fmacro">${fd.kcal} קק"ל · ${fd.protein}חל׳/100ג</span>
+      </div>`).join('') || '<p class="empty-note">לא נמצאו תוצאות.</p>';
+    wrap.querySelectorAll('.food-row').forEach(row=>{
+      row.addEventListener('click', ()=>{
+        const fd = foods.find(x=>x.name===row.dataset.name);
+        showAddFoodForm(fd);
+      });
+    });
+  }
+  renderFoodList('');
+  document.getElementById('food-search').addEventListener('input', (e)=> renderFoodList(e.target.value));
+
+  function showAddFoodForm(fd){
+    const wrap = document.getElementById('add-food-form');
+    wrap.innerHTML = `<div style="margin-top:12px; border-top:1px solid var(--line); padding-top:12px;">
+      <p style="font-size:13.5px; margin:0 0 8px;">הוספת <strong>${fd.name}</strong></p>
+      <div class="grid2">
+        <div class="field"><label>כמות (גרם)</label><input type="number" id="grams-input" value="100"></div>
+      </div>
+      <button class="primary" id="confirm-add-food">הוסף ליומן</button>
+    </div>`;
+    document.getElementById('confirm-add-food').addEventListener('click', async ()=>{
+      const grams = parseFloat(document.getElementById('grams-input').value) || 0;
+      const factor = grams/100;
+      const entry = {
+        name: fd.name, grams,
+        kcal: fd.kcal*factor, protein: fd.protein*factor, carb: fd.carb*factor, fat: fd.fat*factor,
+      };
+      dayLog.push(entry);
+      await storeSet('nutrition:'+date, dayLog);
+      renderNutrition();
+    });
+  }
+
+  document.getElementById('save-new-food-btn').addEventListener('click', async ()=>{
+    const name = document.getElementById('new-food-name').value.trim();
+    const kcal = parseFloat(document.getElementById('new-food-kcal').value);
+    const protein = parseFloat(document.getElementById('new-food-protein').value)||0;
+    const carb = parseFloat(document.getElementById('new-food-carb').value)||0;
+    const fat = parseFloat(document.getElementById('new-food-fat').value)||0;
+    const msg = document.getElementById('new-food-msg');
+    if(!name || isNaN(kcal)){
+      msg.textContent = 'נא למלא שם וקלוריות';
+      return;
+    }
+    const custom = (await storeGet('customFoods')) || [];
+    custom.push({name, kcal, protein, carb, fat});
+    const ok = await storeSet('customFoods', custom);
+    msg.textContent = ok ? '✓ נוסף למאגר' : 'שגיאה';
+    setTimeout(()=> renderNutrition(), 800);
+  });
+}
+
+/* ============================= SETTINGS TAB ============================= */
+
+async function renderSettings(){
+  const el = document.getElementById('tab-settings');
+  await loadSettings();
+  const s = state.settings;
+
+  el.innerHTML = `<div class="panel">
+    <p class="panel-title">פרטים אישיים ויעדים</p>
+    <div class="grid2">
+      <div class="field"><label>תאריך תחילת התוכנית</label><input type="date" id="set-startdate" value="${s.startDate}"></div>
+      <div class="field"><label>גיל</label><input type="number" id="set-age" value="${s.age}"></div>
+      <div class="field"><label>גובה (ס"מ)</label><input type="number" id="set-height" value="${s.heightCm}"></div>
+      <div class="field"><label>משקל נוכחי (ק"ג)</label><input type="number" step="0.1" id="set-weight" value="${s.weightKg}"></div>
+      <div class="field"><label>רמת פעילות</label>
+        <select id="set-activity">${ACTIVITY_FACTORS.map(a=>`<option value="${a.key}" ${a.key===s.activityLevel?'selected':''}>${a.label}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>יעד</label>
+        <select id="set-goal">${GOALS.map(g=>`<option value="${g.key}" ${g.key===s.goal?'selected':''}>${g.label}</option>`).join('')}</select>
+      </div>
+    </div>
+    <button class="primary" id="save-settings-btn">שמור הגדרות</button>
+    <span class="save-msg" id="save-settings-msg"></span>
+    <p class="foot-note">תאריך התחלה קובע את מספר השבוע הנוכחי בתוכנית (1–12), ומשפיע על הריצה, השחייה ושלב האימונים המוצגים ב"היום".</p>
+  </div>
+  <div class="panel accent-strip">
+    <p class="panel-title">איך היעד הקלורי מחושב</p>
+    <p style="font-size:13px; color:var(--text-dim);">
+      BMR מחושב לפי נוסחת Mifflin-St Jeor לגברים, מוכפל בגורם פעילות לפי הרמה שנבחרה, ומותאם לפי היעד שנבחר:
+      חיטוב (20%-), רה-קומפוזיציה (10%-), שימור (ללא שינוי) או עלייה רזה (10%+).
+      יעד החלבון נקבע ל-2 גרם לכל ק"ג משקל גוף, השומן ל-25% מהקלוריות, והשאר פחמימות.
+      זו נקודת פתיחה סבירה — אפשר להתאים לפי התקדמות בפועל.
+    </p>
+  </div>`;
+
+  document.getElementById('save-settings-btn').addEventListener('click', async ()=>{
+    const newSettings = {
+      startDate: document.getElementById('set-startdate').value,
+      age: parseInt(document.getElementById('set-age').value)||30,
+      heightCm: parseFloat(document.getElementById('set-height').value)||178,
+      weightKg: parseFloat(document.getElementById('set-weight').value)||83,
+      activityLevel: document.getElementById('set-activity').value,
+      goal: document.getElementById('set-goal').value,
+    };
+    const ok = await storeSet('settings', newSettings);
+    state.settings = newSettings;
+    const msg = document.getElementById('save-settings-msg');
+    msg.textContent = ok ? '✓ נשמר' : 'שגיאה בשמירה';
+    setTimeout(()=>{ if(msg) msg.textContent=''; }, 2000);
+  });
+}
+
+/* ============================= INIT ============================= */
+
+(async function init(){
+  try{
+    await authReady;
+  }catch(err){
+    showSetupBanner(err);
+    return;
+  }
+  await loadSettings();
+  renderToday();
+})();
+</script>
+</body>
+</html>
