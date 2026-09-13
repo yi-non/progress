@@ -336,14 +336,17 @@ const authReady = new Promise((resolve, reject) => {
 function showSetupBanner(err){
   const banner = document.getElementById('setup-banner');
   const statusEl = document.getElementById('sync-status');
-  if (statusEl) statusEl.textContent = 'לא ניתן להתחבר לענן — ראה הוראות למטה';
+  if (statusEl) statusEl.textContent = 'יש בעיה בחיבור לענן — ראה הוראות למטה';
   if (!banner) return;
   banner.classList.remove('hidden');
-  banner.innerHTML = `<strong>ההתחברות ל-Firebase נכשלה</strong> (${err && err.code ? err.code : 'שגיאה לא ידועה'}).<br>
-    כדי שהאפליקציה תשמור נתונים, יש להגדיר בפרויקט <code>workout-3ecef</code> בקונסולת Firebase:<br>
+  const code = err && err.code ? err.code : 'שגיאה לא ידועה';
+  const msg = err && err.message ? err.message : '';
+  banner.innerHTML = `<strong>הפעולה מול Firebase נכשלה</strong> (${code}).<br>
+    <span style="color:var(--text-dim); font-size:12px;">${msg}</span><br><br>
+    כדי שהאפליקציה תוכל לשמור ולקרוא נתונים, יש להגדיר בפרויקט <code>workout-3ecef</code> בקונסולת Firebase:<br>
     1. Authentication → Sign-in method → הפעלת <strong>Anonymous</strong>.<br>
-    2. Firestore Database → יצירת מסד נתונים (במידה ולא קיים).<br>
-    3. Firestore → Rules → הגדרת הכלל הבא כדי שכל משתמש יראה רק את הנתונים שלו:<br>
+    2. Firestore Database → <strong>ליצור מסד נתונים</strong> אם עוד לא קיים (זו הסיבה השכיחה ביותר לתקלה — בפרויקט חדש אין Firestore עד שיוצרים אותו ידנית).<br>
+    3. Firestore → Rules → הגדרת הכלל הבא כדי שכל משתמש יראה רק את הנתונים שלו, ואז לחיצה על <strong>Publish</strong>:<br>
     <code style="display:block; white-space:pre; background:var(--bg); padding:8px; margin-top:6px; border-radius:2px;">rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -352,7 +355,16 @@ service cloud.firestore {
     }
   }
 }</code>
-    לאחר ההגדרה, רענן את הדף.`;
+    לאחר ההגדרה, רענן את הדף ונסה שוב.`;
+}
+
+let firestoreErrorShown = false;
+function reportFirestoreError(err){
+  console.error('Firestore error', err);
+  if(!firestoreErrorShown){
+    firestoreErrorShown = true;
+    showSetupBanner(err);
+  }
 }
 
 /* ============================= DATA ============================= */
@@ -494,7 +506,7 @@ async function storeGet(key){
     const ref = doc(db, 'users', currentUser.uid, 'kv', key);
     const snap = await getDoc(ref);
     return snap.exists() ? snap.data().value : null;
-  }catch(e){ console.error('storeGet failed', key, e); return null; }
+  }catch(e){ reportFirestoreError(e); return null; }
 }
 async function storeSet(key, value){
   try{
@@ -502,7 +514,7 @@ async function storeSet(key, value){
     const ref = doc(db, 'users', currentUser.uid, 'kv', key);
     await setDoc(ref, {value, updatedAt: Date.now()});
     return true;
-  }catch(e){ console.error('storeSet failed', key, e); return false; }
+  }catch(e){ reportFirestoreError(e); return false; }
 }
 async function storeList(prefix){
   try{
@@ -513,7 +525,7 @@ async function storeList(prefix){
       : query(colRef);
     const snap = await getDocs(q);
     return snap.docs.map(d => d.id);
-  }catch(e){ console.error('storeList failed', prefix, e); return []; }
+  }catch(e){ reportFirestoreError(e); return []; }
 }
 
 function todayStr(d){
@@ -667,7 +679,14 @@ async function renderToday(){
   document.getElementById('daytype-toggle').addEventListener('click', async (e)=>{
     const btn = e.target.closest('.daytype-btn');
     if(!btn) return;
-    await storeSet('daytype:'+dateStr, btn.dataset.key);
+    const toggleWrap = document.getElementById('daytype-toggle');
+    toggleWrap.querySelectorAll('.daytype-btn').forEach(b=> b.disabled = true);
+    const ok = await storeSet('daytype:'+dateStr, btn.dataset.key);
+    if(!ok){
+      toggleWrap.querySelectorAll('.daytype-btn').forEach(b=> b.disabled = false);
+      toggleWrap.insertAdjacentHTML('afterend', '<p class="foot-note" style="color:var(--rust);">השמירה נכשלה — ראה הודעת השגיאה למעלה בעמוד.</p>');
+      return;
+    }
     renderToday();
   });
 
