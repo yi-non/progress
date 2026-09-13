@@ -295,7 +295,8 @@ import {
   getAuth, signInAnonymously, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, documentId
+  initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
+  doc, getDoc, setDoc, collection, query, where, getDocs, documentId
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 /* ============================= FIREBASE SETUP ============================= */
@@ -312,17 +313,41 @@ const firebaseConfig = {
 
 const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
-const db = getFirestore(fbApp);
+
+// Enable offline persistence: reads/writes are cached on the device (IndexedDB)
+// and work with no internet connection, then sync automatically to Firestore
+// once connectivity comes back. Falls back to the plain (online-only) client
+// if the browser doesn't support it (e.g. private browsing in some browsers).
+let db;
+try {
+  db = initializeFirestore(fbApp, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
+} catch (e) {
+  console.warn('Firestore offline persistence unavailable, falling back to online-only mode', e);
+  db = getFirestore(fbApp);
+}
 
 let currentUser = null;
 let authFailed = false;
+
+function updateConnectivityStatus(){
+  const statusEl = document.getElementById('sync-status');
+  if (!statusEl || !currentUser) return;
+  if (navigator.onLine) {
+    statusEl.textContent = 'מחובר לענן ✓ — הנתונים שלך נשמרים ב-Firestore';
+  } else {
+    statusEl.textContent = 'אין חיבור לאינטרנט כרגע — עובד במצב אופליין, הנתונים נשמרים במכשיר ויסונכרנו לענן אוטומטית כשהחיבור יחזור';
+  }
+}
+window.addEventListener('online', updateConnectivityStatus);
+window.addEventListener('offline', updateConnectivityStatus);
 
 const authReady = new Promise((resolve, reject) => {
   onAuthStateChanged(auth, (user) => {
     if (user) {
       currentUser = user;
-      const statusEl = document.getElementById('sync-status');
-      if (statusEl) statusEl.textContent = 'מחובר לענן ✓ — הנתונים שלך נשמרים ב-Firestore';
+      updateConnectivityStatus();
       resolve(user);
     } else {
       signInAnonymously(auth).catch((err) => {
@@ -513,7 +538,11 @@ async function storeSet(key, value){
   try{
     await authReady;
     const ref = doc(db, 'users', currentUser.uid, 'kv', key);
-    await setDoc(ref, {value, updatedAt: Date.now()});
+    // With offline persistence, this write lands in the local cache instantly
+    // and syncs to Firestore in the background (now, or once back online).
+    // We don't await the server round-trip here, so "saved" feedback in the
+    // UI stays instant instead of hanging while offline.
+    setDoc(ref, {value, updatedAt: Date.now()}).catch(e => reportFirestoreError(e));
     return true;
   }catch(e){ reportFirestoreError(e); return false; }
 }
@@ -1144,12 +1173,24 @@ async function renderNutrition(){
           <option value="ml">משקה / נוזל (נמדד במ"ל)</option>
         </select>
       </div>
-      <div class="field"><label>קלוריות ל-100 <span class="unit-suffix">גרם</span></label><input type="number" id="new-food-kcal"></div>
-      <div class="field"><label>חלבון (גרם ל-100 <span class="unit-suffix">גרם</span>)</label><input type="number" step="0.1" id="new-food-protein"></div>
-      <div class="field"><label>פחמימות (גרם ל-100 <span class="unit-suffix">גרם</span>)</label><input type="number" step="0.1" id="new-food-carb"></div>
-      <div class="field"><label>שומן (גרם ל-100 <span class="unit-suffix">גרם</span>)</label><input type="number" step="0.1" id="new-food-fat"></div>
+      <div class="field"><label>איך תרצה/י להזין את הערכים</label>
+        <select id="new-food-basis">
+          <option value="100">לפי 100 גרם/מ"ל (כמו על תווית מזון)</option>
+          <option value="actual">לפי כמות בפועל של המוצר שיש לך</option>
+        </select>
+      </div>
+      <div class="field" id="new-food-actual-wrap" style="display:none;">
+        <label>כמה <span class="unit-suffix">גרם</span> יש בפועל במוצר</label>
+        <input type="number" id="new-food-actual-amount" value="100">
+      </div>
     </div>
-    <p class="foot-note" style="margin-top:-4px;">עבור משקה, כל הערכים התזונתיים יוזנו לפי 100 מ"ל. בעת הוספה ליומן תוכל/י לרשום כמה מ"ל בפועל שתית, והחישוב יתאים את הכמות באופן יחסי (בדיוק כמו בגרם למוצקים).</p>
+    <p class="foot-note" id="new-food-basis-note" style="margin:2px 0 10px;"></p>
+    <div class="grid2">
+      <div class="field"><label>קלוריות</label><input type="number" id="new-food-kcal"></div>
+      <div class="field"><label>חלבון (גרם)</label><input type="number" step="0.1" id="new-food-protein"></div>
+      <div class="field"><label>פחמימות (גרם)</label><input type="number" step="0.1" id="new-food-carb"></div>
+      <div class="field"><label>שומן (גרם)</label><input type="number" step="0.1" id="new-food-fat"></div>
+    </div>
     <button class="secondary" id="save-new-food-btn">שמור מוצר במאגר</button>
     <span class="save-msg" id="new-food-msg"></span>
   </div>`;
@@ -1208,12 +1249,28 @@ async function renderNutrition(){
   renderFoodList('');
   document.getElementById('food-search').addEventListener('input', (e)=> renderFoodList(e.target.value));
 
-  function updateUnitSuffixLabels(){
+  function updateNewFoodUI(){
     const unit = document.getElementById('new-food-unit').value;
-    const label = unit==='ml' ? 'מ"ל' : 'גרם';
-    document.querySelectorAll('.unit-suffix').forEach(s=> s.textContent = label);
+    const unitLabel = unit==='ml' ? 'מ"ל' : 'גרם';
+    document.querySelectorAll('.unit-suffix').forEach(s=> s.textContent = unitLabel);
+
+    const basis = document.getElementById('new-food-basis').value;
+    const actualWrap = document.getElementById('new-food-actual-wrap');
+    const note = document.getElementById('new-food-basis-note');
+    if(basis==='actual'){
+      actualWrap.style.display = '';
+      const amt = parseFloat(document.getElementById('new-food-actual-amount').value);
+      const amtLabel = amt>0 ? amt : '...';
+      note.textContent = `רשום/י את הקלוריות והערכים התזונתיים עבור ${amtLabel} ${unitLabel} (הכמות שיש לך בפועל, למשל אריזה שלמה). המערכת תמיר את זה אוטומטית לערך סטנדרטי ל-100 ${unitLabel} לצורך שמירה במאגר.`;
+    } else {
+      actualWrap.style.display = 'none';
+      note.textContent = `רשום/י את הקלוריות והערכים התזונתיים לפי 100 ${unitLabel}, בדיוק כפי שמופיע בדרך כלל על תווית המזון.`;
+    }
   }
-  document.getElementById('new-food-unit').addEventListener('change', updateUnitSuffixLabels);
+  document.getElementById('new-food-unit').addEventListener('change', updateNewFoodUI);
+  document.getElementById('new-food-basis').addEventListener('change', updateNewFoodUI);
+  document.getElementById('new-food-actual-amount').addEventListener('input', updateNewFoodUI);
+  updateNewFoodUI();
 
   function showAddFoodForm(fd){
     const wrap = document.getElementById('add-food-form');
@@ -1242,14 +1299,30 @@ async function renderNutrition(){
   document.getElementById('save-new-food-btn').addEventListener('click', async ()=>{
     const name = document.getElementById('new-food-name').value.trim();
     const unit = document.getElementById('new-food-unit').value === 'ml' ? 'ml' : 'g';
-    const kcal = parseFloat(document.getElementById('new-food-kcal').value);
-    const protein = parseFloat(document.getElementById('new-food-protein').value)||0;
-    const carb = parseFloat(document.getElementById('new-food-carb').value)||0;
-    const fat = parseFloat(document.getElementById('new-food-fat').value)||0;
+    const basis = document.getElementById('new-food-basis').value;
+    const kcalRaw = parseFloat(document.getElementById('new-food-kcal').value);
+    const proteinRaw = parseFloat(document.getElementById('new-food-protein').value)||0;
+    const carbRaw = parseFloat(document.getElementById('new-food-carb').value)||0;
+    const fatRaw = parseFloat(document.getElementById('new-food-fat').value)||0;
     const msg = document.getElementById('new-food-msg');
-    if(!name || isNaN(kcal)){
+    if(!name || isNaN(kcalRaw)){
       msg.textContent = 'נא למלא שם וקלוריות';
       return;
+    }
+    let kcal = kcalRaw, protein = proteinRaw, carb = carbRaw, fat = fatRaw;
+    if(basis==='actual'){
+      const actualAmount = parseFloat(document.getElementById('new-food-actual-amount').value) || 0;
+      if(actualAmount<=0){
+        msg.textContent = 'נא לרשום כמות בפועל תקינה';
+        return;
+      }
+      // Normalize whatever amount the person actually has to a per-100 value,
+      // so downstream logging (which always scales from 100) stays correct.
+      const factor = 100/actualAmount;
+      kcal = kcalRaw*factor;
+      protein = proteinRaw*factor;
+      carb = carbRaw*factor;
+      fat = fatRaw*factor;
     }
     const custom = (await storeGet('customFoods')) || [];
     custom.push({name, unit, kcal, protein, carb, fat});
